@@ -100,3 +100,7 @@ With 5,000 rows, the POST `/reports` endpoint takes **~4.42 seconds** to generat
 **Stage 4:** The POST endpoint runs the full pipeline (query → render → store) inline. For production with large reports or many users, this work should move to a background job to avoid keeping the client waiting.
 
 **Stage 5:** The idempotency check prevents duplicate reports when a user double-clicks "Generate report". A real-world example: charging a customer twice for the same order because the payment endpoint was called twice.
+
+## Author
+
+AI Engineer | Deep Learning | Computer Vision | GEN AI | Agentic AI
