@@ -4,6 +4,39 @@ from datetime import datetime, timedelta
 DB_PATH = "report.db"
 
 
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def save_report(path: str) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.execute(
+        "INSERT INTO reports (path, created_at) VALUES (?, ?)",
+        (path, datetime.now().isoformat()),
+    )
+    report_id: int = cur.lastrowid or 0
+    conn.commit()
+    conn.close()
+    return report_id
+
+
+def get_report(report_id: int) -> dict | None:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def get_report_data() -> dict:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
