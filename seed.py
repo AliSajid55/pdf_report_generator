@@ -1,5 +1,6 @@
 import sqlite3
 import random
+import sys
 from datetime import datetime, timedelta
 
 DB_PATH = "report.db"
@@ -7,6 +8,8 @@ DB_PATH = "report.db"
 PRODUCTS = ["Laptop", "Phone", "Tablet", "Headphones", "Keyboard", "Mouse"]
 END_DATE = datetime.now()
 START_DATE = END_DATE - timedelta(days=30)
+
+num_rows = int(sys.argv[1]) if len(sys.argv) > 1 else 200
 
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
@@ -23,7 +26,7 @@ cur.execute("""
 """)
 
 rows = []
-for _ in range(200):
+for _ in range(num_rows):
     product = random.choice(PRODUCTS)
     amount = round(random.uniform(5, 200), 2)
     days_ago = random.randint(0, 30)

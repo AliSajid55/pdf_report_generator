@@ -14,7 +14,8 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 2. Seed the database (safe to run twice)
-python seed.py
+python seed.py          # 200 rows (default)
+python seed.py 5000     # 5000 rows for stress test
 
 # 3. Start the server
 uvicorn main:app --reload
@@ -22,7 +23,13 @@ uvicorn main:app --reload
 # 4. Generate a report
 curl -X POST http://localhost:8000/reports
 
-# 5. Download the PDF
+# 5. Filter by days
+curl -X POST http://localhost:8000/reports -H "Content-Type: application/json" -d '{"days": 7}'
+
+# 6. List all reports
+curl http://localhost:8000/reports
+
+# 7. Download the PDF
 curl -o report.pdf http://localhost:8000/reports/<id>/file
 ```
 
@@ -59,7 +66,10 @@ ORDER BY created_at;
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Health check |
+| GET | `/reports` | List all generated reports |
 | POST | `/reports` | Generate a report (idempotent) |
+| POST | `/reports` | `{"days": 7}` — filter orders by last N days |
+| POST | `/reports` | `{"force": true}` — bypass idempotency check |
 | GET | `/reports/:id` | Get report metadata |
 | GET | `/reports/:id/file` | Download the PDF |
 
@@ -80,6 +90,10 @@ report.pdf: PDF document, version 1.4
 ## Idempotency (Stage 5)
 
 Two rapid POSTs return the same id and create only one file. A `{"force": true}` request bypasses the check and creates a new report.
+
+## Big Table Experiment (Stage 6)
+
+With 5,000 rows, the POST `/reports` endpoint takes **~4.42 seconds** to generate a 210-page PDF (596 KB). This is acceptable for a single user clicking a button, but becomes fragile under load — a request that takes seconds keeps the client waiting and blocks the server. This is exactly the problem background jobs solve: move the work to a queue, return immediately with a job ID, and let the client poll for completion.
 
 ## Design Decisions
 

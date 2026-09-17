@@ -49,33 +49,55 @@ def get_report(report_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-def get_report_data() -> dict:
+def list_reports() -> list[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM reports ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_report_data(days: int | None = None) -> dict:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
-    total_orders = conn.execute("SELECT COUNT(*) as cnt FROM orders").fetchone()["cnt"]
+    if days:
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        where_clause = "WHERE created_at >= ?"
+        params = (cutoff,)
+    else:
+        where_clause = ""
+        params = ()
 
-    total_revenue = conn.execute("SELECT SUM(amount) as total FROM orders").fetchone()["total"]
+    total_orders = conn.execute(
+        f"SELECT COUNT(*) as cnt FROM orders {where_clause}", params
+    ).fetchone()["cnt"]
+
+    total_revenue = conn.execute(
+        f"SELECT SUM(amount) as total FROM orders {where_clause}", params
+    ).fetchone()["total"] or 0
 
     top_products = [
         dict(row)
         for row in conn.execute(
-            "SELECT product, SUM(amount) as revenue FROM orders GROUP BY product ORDER BY revenue DESC LIMIT 5"
+            f"SELECT product, SUM(amount) as revenue FROM orders {where_clause} GROUP BY product ORDER BY revenue DESC LIMIT 5",
+            params,
         )
     ]
 
-    seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     orders_per_day = [
         dict(row)
         for row in conn.execute(
-            "SELECT created_at as date, COUNT(*) as orders FROM orders WHERE created_at >= ? GROUP BY created_at ORDER BY created_at",
-            (seven_days_ago,),
+            f"SELECT created_at as date, COUNT(*) as orders FROM orders {where_clause} GROUP BY created_at ORDER BY created_at",
+            params,
         )
     ]
 
     all_orders = [
         dict(row)
-        for row in conn.execute("SELECT * FROM orders ORDER BY created_at DESC")
+        for row in conn.execute(
+            f"SELECT * FROM orders {where_clause} ORDER BY created_at DESC", params
+        )
     ]
 
     conn.close()

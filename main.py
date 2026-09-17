@@ -2,13 +2,14 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from database import init_db, get_report_data, save_report, get_report, get_today_report
-from pdf_generator import build_html, render_pdf, REPORTS_DIR
+from database import init_db, get_report_data, save_report, get_report, get_today_report, list_reports
+from pdf_generator import build_html, render_pdf, make_filename, REPORTS_DIR
 
 app = FastAPI()
 
 
 class ReportRequest(BaseModel):
+    days: int | None = None
     force: bool = False
 
 
@@ -23,6 +24,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/reports")
+def list_all_reports():
+    reports = list_reports()
+    return {"reports": [{"id": r["id"], "created_at": r["created_at"], "file": f"/reports/{r['id']}/file"} for r in reports]}
+
+
 @app.post("/reports")
 def create_report(body: ReportRequest = ReportRequest()):
     if not body.force:
@@ -30,10 +37,10 @@ def create_report(body: ReportRequest = ReportRequest()):
         if existing:
             return {"id": existing["id"], "file": f"/reports/{existing['id']}/file"}
 
-    data = get_report_data()
-    html = build_html(data)
+    data = get_report_data(days=body.days)
+    html = build_html(data, days=body.days)
     report_id = save_report("placeholder")
-    filename = f"{report_id}.pdf"
+    filename = make_filename()
     filepath = os.path.join(REPORTS_DIR, filename)
     render_pdf(html, filepath)
 
@@ -60,4 +67,5 @@ def get_report_file(report_id: int):
         raise HTTPException(status_code=404, detail="Report not found")
     if not os.path.exists(report["path"]):
         raise HTTPException(status_code=404, detail="PDF file not found")
-    return FileResponse(report["path"], media_type="application/pdf", filename=f"report_{report_id}.pdf")
+    filename = os.path.basename(report["path"])
+    return FileResponse(report["path"], media_type="application/pdf", filename=filename)
