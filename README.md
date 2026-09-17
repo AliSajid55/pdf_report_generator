@@ -103,4 +103,5 @@ With 5,000 rows, the POST `/reports` endpoint takes **~4.42 seconds** to generat
 
 ## Author
 
+ALI SAJID
 AI Engineer | Deep Learning | Computer Vision | GEN AI | Agentic AI
