@@ -28,6 +28,11 @@ def get_report_data() -> dict:
         )
     ]
 
+    all_orders = [
+        dict(row)
+        for row in conn.execute("SELECT * FROM orders ORDER BY created_at DESC")
+    ]
+
     conn.close()
 
     return {
@@ -35,6 +40,7 @@ def get_report_data() -> dict:
         "total_revenue": round(total_revenue, 2),
         "top_products": top_products,
         "orders_per_day": orders_per_day,
+        "all_orders": all_orders,
     }
 
 
