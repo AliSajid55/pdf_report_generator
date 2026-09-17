@@ -1,10 +1,15 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from database import init_db, get_report_data, save_report, get_report
+from pydantic import BaseModel
+from database import init_db, get_report_data, save_report, get_report, get_today_report
 from pdf_generator import build_html, render_pdf, REPORTS_DIR
 
 app = FastAPI()
+
+
+class ReportRequest(BaseModel):
+    force: bool = False
 
 
 @app.on_event("startup")
@@ -18,8 +23,13 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/reports", status_code=201)
-def create_report():
+@app.post("/reports")
+def create_report(body: ReportRequest = ReportRequest()):
+    if not body.force:
+        existing = get_today_report()
+        if existing:
+            return {"id": existing["id"], "file": f"/reports/{existing['id']}/file"}
+
     data = get_report_data()
     html = build_html(data)
     report_id = save_report("placeholder")

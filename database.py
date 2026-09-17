@@ -29,6 +29,18 @@ def save_report(path: str) -> int:
     return report_id
 
 
+def get_today_report() -> dict | None:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    today = datetime.now().strftime("%Y-%m-%d")
+    row = conn.execute(
+        "SELECT * FROM reports WHERE created_at LIKE ? ORDER BY id DESC LIMIT 1",
+        (f"{today}%",),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def get_report(report_id: int) -> dict | None:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
